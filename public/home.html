@@ -222,17 +222,20 @@
 
     hamburgerBtn.addEventListener('click', function() {
         navMenu.classList.toggle('open');
+        hamburgerBtn.classList.toggle('open');
         mobileOverlay.classList.toggle('show');
         document.body.classList.toggle('no-scroll');
     });
     mobileOverlay.addEventListener('click', function() {
         navMenu.classList.remove('open');
+        hamburgerBtn.classList.remove('open');
         mobileOverlay.classList.remove('show');
         document.body.classList.remove('no-scroll');
     });
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', () => {
             navMenu.classList.remove('open');
+            hamburgerBtn.classList.remove('open');
             mobileOverlay.classList.remove('show');
             document.body.classList.remove('no-scroll');
         });
