@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const helmet = require('helmet');
@@ -125,18 +125,14 @@ const uploadMedia = multer({
 });
 
 // Database
-const db = new sqlite3.Database('./database/psi_cms.db', (err) => {
-    if (err) {
-        console.error('Errore connessione database:', err);
-    } else {
-        console.log('✅ Database connesso con successo');
-    }
-});
-
-// Gestione errori database
-db.on('error', (err) => {
-    console.error('Errore database:', err);
-});
+let db;
+try {
+    db = new Database('./database/psi_cms.db');
+    console.log('✅ Database connesso con successo');
+} catch (err) {
+    console.error('Errore connessione database:', err);
+    process.exit(1);
+}
 
 // Middleware di autenticazione
 const authenticateToken = (req, res, next) => {
@@ -250,42 +246,38 @@ app.post('/api/login', async (req, res) => {
         return res.status(400).json({ error: 'Username e password sono obbligatori' });
     }
     
-    db.get('SELECT * FROM users WHERE username = ?', [username.trim()], async (err, user) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
+        const user = stmt.get(username.trim());
         
         if (!user) {
             return res.status(401).json({ error: 'Credenziali non valide' });
         }
         
-        try {
-            const validPassword = await bcrypt.compare(password, user.password_hash);
-            if (!validPassword) {
-                return res.status(401).json({ error: 'Credenziali non valide' });
-            }
-            
-            const token = jwt.sign(
-                { id: user.id, username: user.username, role: user.role },
-                JWT_SECRET,
-                { expiresIn: '24h' }
-            );
-            
-            res.json({
-                token,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role
-                }
-            });
-        } catch (error) {
-            console.error('Errore bcrypt:', error);
-            res.status(500).json({ error: 'Errore interno del server' });
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Credenziali non valide' });
         }
-    });
+        
+        const token = jwt.sign(
+            { id: user.id, username: user.username, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+        
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Errore database o bcrypt:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 // Verifica token
@@ -295,111 +287,88 @@ app.get('/api/verify', authenticateToken, (req, res) => {
 
 // Gestione utenti
 app.get('/api/users', authenticateToken, requireRole(['admin', 'super_admin']), (req, res) => {
-    db.all('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC', (err, users) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const stmt = db.prepare('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC');
+        const users = stmt.all();
         res.json(users);
-    });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.post('/api/users', authenticateToken, requireRole(['admin']), validateUser, async (req, res) => {
     const { username, email, password, role } = req.body;
     
-    // Verifica se username o email esistono già
-    db.get('SELECT id FROM users WHERE username = ? OR email = ?', [username, email], async (err, existingUser) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        // Verifica se username o email esistono già
+        const checkStmt = db.prepare('SELECT id FROM users WHERE username = ? OR email = ?');
+        const existingUser = checkStmt.get(username, email);
         
         if (existingUser) {
             return res.status(400).json({ error: 'Username o email già esistenti' });
         }
         
-        try {
-            const hashedPassword = await bcrypt.hash(password, 12);
-            
-            db.run(
-                'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
-                [username, email, hashedPassword, role || 'author'],
-                function(err) {
-                    if (err) {
-                        console.error('Errore database:', err);
-                        return res.status(500).json({ error: 'Errore interno del server' });
-                    }
-                    
-                    res.json({ 
-                        id: this.lastID,
-                        username,
-                        email,
-                        role: role || 'author'
-                    });
-                }
-            );
-        } catch (error) {
-            console.error('Errore bcrypt:', error);
-            res.status(500).json({ error: 'Errore interno del server' });
-        }
-    });
+        const hashedPassword = await bcrypt.hash(password, 12);
+        
+        const insertStmt = db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)');
+        const result = insertStmt.run(username, email, hashedPassword, role || 'author');
+        
+        res.json({ 
+            id: result.lastInsertRowid,
+            username,
+            email,
+            role: role || 'author'
+        });
+    } catch (error) {
+        console.error('Errore database o bcrypt:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.put('/api/users/:id', authenticateToken, requireRole(['admin']), validateUser, async (req, res) => {
     const { id } = req.params;
     const { username, email, password, role } = req.body;
     
-    // Verifica se l'utente esiste
-    db.get('SELECT id FROM users WHERE id = ?', [id], async (err, user) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        // Verifica se l'utente esiste
+        const userStmt = db.prepare('SELECT id FROM users WHERE id = ?');
+        const user = userStmt.get(id);
         
         if (!user) {
             return res.status(404).json({ error: 'Utente non trovato' });
         }
         
         // Verifica se username o email esistono già (escludendo l'utente corrente)
-        db.get('SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ?', [username, email, id], async (err, existingUser) => {
-            if (err) {
-                console.error('Errore database:', err);
-                return res.status(500).json({ error: 'Errore interno del server' });
-            }
-            
-            if (existingUser) {
-                return res.status(400).json({ error: 'Username o email già esistenti' });
-            }
-            
-            try {
-                let updateQuery = 'UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?';
-                let params = [username, email, role, id];
-                
-                if (password) {
-                    const hashedPassword = await bcrypt.hash(password, 12);
-                    updateQuery = 'UPDATE users SET username = ?, email = ?, password = ?, role = ? WHERE id = ?';
-                    params = [username, email, hashedPassword, role, id];
-                }
-                
-                db.run(updateQuery, params, function(err) {
-                    if (err) {
-                        console.error('Errore database:', err);
-                        return res.status(500).json({ error: 'Errore interno del server' });
-                    }
-                    
-                    res.json({ 
-                        id: parseInt(id),
-                        username,
-                        email,
-                        role
-                    });
-                });
-            } catch (error) {
-                console.error('Errore bcrypt:', error);
-                res.status(500).json({ error: 'Errore interno del server' });
-            }
+        const existingStmt = db.prepare('SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ?');
+        const existingUser = existingStmt.get(username, email, id);
+        
+        if (existingUser) {
+            return res.status(400).json({ error: 'Username o email già esistenti' });
+        }
+        
+        let updateQuery = 'UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?';
+        let params = [username, email, role, id];
+        
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 12);
+            updateQuery = 'UPDATE users SET username = ?, email = ?, password_hash = ?, role = ? WHERE id = ?';
+            params = [username, email, hashedPassword, role, id];
+        }
+        
+        const updateStmt = db.prepare(updateQuery);
+        const result = updateStmt.run(...params);
+        
+        res.json({ 
+            id: parseInt(id),
+            username,
+            email,
+            role
         });
-    });
+    } catch (error) {
+        console.error('Errore database o bcrypt:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.delete('/api/users/:id', authenticateToken, requireRole(['admin']), (req, res) => {
@@ -410,18 +379,19 @@ app.delete('/api/users/:id', authenticateToken, requireRole(['admin']), (req, re
         return res.status(400).json({ error: 'Non puoi eliminare il tuo account' });
     }
     
-    db.run('DELETE FROM users WHERE id = ?', [id], function(err) {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+        const result = stmt.run(id);
         
-        if (this.changes === 0) {
+        if (result.changes === 0) {
             return res.status(404).json({ error: 'Utente non trovato' });
         }
         
         res.json({ message: 'Utente eliminato con successo' });
-    });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 // Gestione articoli
@@ -446,25 +416,24 @@ app.get('/api/articles', (req, res) => {
     console.log('Query:', query);
     console.log('Params:', params);
     
-    db.all(query, params, (err, articles) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const stmt = db.prepare(query);
+        const articles = stmt.all(...params);
         console.log('Articoli trovati:', articles ? articles.length : 0);
         res.json(articles || []);
-    });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.get('/api/articles/:id', (req, res) => {
     const { id } = req.params;
     console.log('GET /api/articles/:id - ID:', id);
     
-    db.get('SELECT a.*, u.username as author_name FROM articles a LEFT JOIN users u ON a.author_id = u.id WHERE a.id = ?', [id], (err, article) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const stmt = db.prepare('SELECT a.*, u.username as author_name FROM articles a LEFT JOIN users u ON a.author_id = u.id WHERE a.id = ?');
+        const article = stmt.get(id);
         
         console.log('Articolo trovato:', article ? 'Sì' : 'No');
         
@@ -473,7 +442,10 @@ app.get('/api/articles/:id', (req, res) => {
         }
         
         res.json(article);
-    });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.post('/api/articles', authenticateToken, requireRole(['admin', 'editor', 'author', 'super_admin']), uploadImage.single('image'), (req, res) => {
@@ -531,25 +503,18 @@ app.post('/api/articles', authenticateToken, requireRole(['admin', 'editor', 'au
             }
         );
             } else {
-            db.run(
-                'INSERT INTO articles (title, content, category, status, author_id, featured_image) VALUES (?, ?, ?, ?, ?, ?)',
-                [sanitizedTitle, sanitizedContent, sanitizedCategory, finalStatus, req.user.id, imageUrl],
-            function(err) {
-                if (err) {
-                    console.error('Errore database:', err);
-                    return res.status(500).json({ error: 'Errore interno del server' });
-                }
-                res.json({
-                    id: this.lastID,
-                    title: sanitizedTitle,
-                    content: sanitizedContent,
-                    category: sanitizedCategory,
-                    status: finalStatus,
-                    author_id: req.user.id,
-                    image_url: imageUrl
-                });
-            }
-        );
+            const stmt = db.prepare('INSERT INTO articles (title, content, category, status, author_id, featured_image) VALUES (?, ?, ?, ?, ?, ?)');
+            const result = stmt.run(sanitizedTitle, sanitizedContent, sanitizedCategory, finalStatus, req.user.id, imageUrl);
+            
+            res.json({
+                id: result.lastInsertRowid,
+                title: sanitizedTitle,
+                content: sanitizedContent,
+                category: sanitizedCategory,
+                status: finalStatus,
+                author_id: req.user.id,
+                image_url: imageUrl
+            });
     }
 });
 
@@ -584,11 +549,8 @@ app.put('/api/articles/:id', authenticateToken, requireRole(['admin', 'editor', 
     const finalStatus = isPublished ? 'published' : 'draft';
     
             // Verifica se l'articolo esiste e se l'utente ha i permessi
-        db.get('SELECT author_id, status, featured_image FROM articles WHERE id = ?', [id], (err, article) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+        const articleStmt = db.prepare('SELECT author_id, status, featured_image FROM articles WHERE id = ?');
+        const article = articleStmt.get(id);
         
         if (!article) {
             return res.status(404).json({ error: 'Articolo non trovato' });
@@ -617,35 +579,26 @@ app.put('/api/articles/:id', authenticateToken, requireRole(['admin', 'editor', 
             'UPDATE articles SET title = ?, content = ?, category = ?, status = ?, featured_image = ?, published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?' :
             'UPDATE articles SET title = ?, content = ?, category = ?, status = ?, featured_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
         
-        const params = [sanitizedTitle, sanitizedContent, sanitizedCategory, finalStatus, imageUrl, id];
+        const updateStmt = db.prepare(updateQuery);
+        updateStmt.run(sanitizedTitle, sanitizedContent, sanitizedCategory, finalStatus, imageUrl, id);
         
-        db.run(updateQuery, params, function(err) {
-            if (err) {
-                console.error('Errore database:', err);
-                return res.status(500).json({ error: 'Errore interno del server' });
-            }
-            
-            res.json({
-                id: parseInt(id),
-                title: sanitizedTitle,
-                content: sanitizedContent,
-                category: sanitizedCategory,
-                status: finalStatus,
-                image_url: imageUrl
-            });
+        res.json({
+            id: parseInt(id),
+            title: sanitizedTitle,
+            content: sanitizedContent,
+            category: sanitizedCategory,
+            status: finalStatus,
+            image_url: imageUrl
         });
-    });
 });
 
 app.delete('/api/articles/:id', authenticateToken, requireRole(['admin', 'editor', 'author', 'super_admin']), (req, res) => {
     const { id } = req.params;
     
-    // Verifica se l'articolo esiste e se l'utente ha i permessi
-    db.get('SELECT author_id, featured_image FROM articles WHERE id = ?', [id], (err, article) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        // Verifica se l'articolo esiste e se l'utente ha i permessi
+        const articleStmt = db.prepare('SELECT author_id, featured_image FROM articles WHERE id = ?');
+        const article = articleStmt.get(id);
         
         if (!article) {
             return res.status(404).json({ error: 'Articolo non trovato' });
@@ -664,15 +617,14 @@ app.delete('/api/articles/:id', authenticateToken, requireRole(['admin', 'editor
             }
         }
         
-        db.run('DELETE FROM articles WHERE id = ?', [id], function(err) {
-            if (err) {
-                console.error('Errore database:', err);
-                return res.status(500).json({ error: 'Errore interno del server' });
-            }
-            
-            res.json({ message: 'Articolo eliminato con successo' });
-        });
-    });
+        const deleteStmt = db.prepare('DELETE FROM articles WHERE id = ?');
+        deleteStmt.run(id);
+        
+        res.json({ message: 'Articolo eliminato con successo' });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 // Gestione utenti
@@ -784,13 +736,14 @@ app.delete('/api/users/:id', authenticateToken, requireRole(['admin', 'super_adm
 
 // Gestione media
 app.get('/api/media', (req, res) => {
-    db.all('SELECT * FROM media ORDER BY created_at DESC', (err, media) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const stmt = db.prepare('SELECT * FROM media ORDER BY created_at DESC');
+        const media = stmt.all();
         res.json(media);
-    });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.post('/api/media', authenticateToken, requireRole(['admin', 'editor', 'author', 'super_admin']), uploadMedia.single('file'), (req, res) => {
@@ -807,29 +760,26 @@ app.post('/api/media', authenticateToken, requireRole(['admin', 'editor', 'autho
     
     const fileUrl = `/uploads/${req.file.filename}`;
     
-    db.run(
-        'INSERT INTO media (filename, original_name, mime_type, size, path, url, title, description, photo_date, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [req.file.filename, req.file.originalname, req.file.mimetype, req.file.size, req.file.path, fileUrl, title, description, photo_date, req.user.id],
-        function(err) {
-            if (err) {
-                console.error('Errore database:', err);
-                return res.status(500).json({ error: 'Errore interno del server' });
-            }
-            
-            res.json({
-                id: this.lastID,
-                filename: req.file.filename,
-                original_name: req.file.originalname,
-                mime_type: req.file.mimetype,
-                size: req.file.size,
-                url: fileUrl,
-                title,
-                description,
-                photo_date,
-                uploaded_by: req.user.id
-            });
-        }
-    );
+    try {
+        const stmt = db.prepare('INSERT INTO media (filename, original_name, mime_type, size, path, url, title, description, photo_date, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        const result = stmt.run(req.file.filename, req.file.originalname, req.file.mimetype, req.file.size, req.file.path, fileUrl, title, description, photo_date, req.user.id);
+        
+        res.json({
+            id: result.lastInsertRowid,
+            filename: req.file.filename,
+            original_name: req.file.originalname,
+            mime_type: req.file.mimetype,
+            size: req.file.size,
+            url: fileUrl,
+            title,
+            description,
+            photo_date,
+            uploaded_by: req.user.id
+        });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.put('/api/media/:id', authenticateToken, requireRole(['admin', 'editor', 'author', 'super_admin']), (req, res) => {
@@ -841,32 +791,27 @@ app.put('/api/media/:id', authenticateToken, requireRole(['admin', 'editor', 'au
         return res.status(400).json({ error: 'La data della foto è obbligatoria' });
     }
     
-    db.run(
-        'UPDATE media SET title = ?, description = ?, photo_date = ? WHERE id = ?',
-        [title, description, photo_date, id],
-        function(err) {
-            if (err) {
-                console.error('Errore database:', err);
-                return res.status(500).json({ error: 'Errore interno del server' });
-            }
-            
-            if (this.changes === 0) {
-                return res.status(404).json({ error: 'Media non trovato' });
-            }
-            
-            res.json({ message: 'Media aggiornato con successo' });
+    try {
+        const stmt = db.prepare('UPDATE media SET title = ?, description = ?, photo_date = ? WHERE id = ?');
+        const result = stmt.run(title, description, photo_date, id);
+        
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Media non trovato' });
         }
-    );
+        
+        res.json({ message: 'Media aggiornato con successo' });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 app.delete('/api/media/:id', authenticateToken, requireRole(['admin', 'editor', 'author', 'super_admin']), (req, res) => {
     const { id } = req.params;
     
-    db.get('SELECT path FROM media WHERE id = ?', [id], (err, media) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const mediaStmt = db.prepare('SELECT path FROM media WHERE id = ?');
+        const media = mediaStmt.get(id);
         
         if (!media) {
             return res.status(404).json({ error: 'File non trovato' });
@@ -877,69 +822,58 @@ app.delete('/api/media/:id', authenticateToken, requireRole(['admin', 'editor', 
             fs.unlinkSync(media.path);
         }
         
-        db.run('DELETE FROM media WHERE id = ?', [id], function(err) {
-            if (err) {
-                console.error('Errore database:', err);
-                return res.status(500).json({ error: 'Errore interno del server' });
-            }
-            
-            res.json({ message: 'File eliminato con successo' });
-        });
-    });
+        const deleteStmt = db.prepare('DELETE FROM media WHERE id = ?');
+        deleteStmt.run(id);
+        
+        res.json({ message: 'File eliminato con successo' });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 // Categorie
 app.get('/api/categories', (req, res) => {
-    db.all('SELECT * FROM categories ORDER BY name', (err, categories) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
+    try {
+        const stmt = db.prepare('SELECT * FROM categories ORDER BY name');
+        const categories = stmt.all();
         res.json(categories);
-    });
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 // Dashboard stats
 app.get('/api/dashboard/stats', authenticateToken, (req, res) => {
-    const stats = {};
-    
-    // Conta utenti
-    db.get('SELECT COUNT(*) as count FROM users', (err, result) => {
-        if (err) {
-            console.error('Errore database:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-        }
-        stats.users = result.count;
+    try {
+        const stats = {};
+        
+        // Conta utenti
+        const usersStmt = db.prepare('SELECT COUNT(*) as count FROM users');
+        const usersResult = usersStmt.get();
+        stats.users = usersResult.count;
         
         // Conta articoli
-        db.get('SELECT COUNT(*) as count FROM articles', (err, result) => {
-            if (err) {
-                console.error('Errore database:', err);
-                return res.status(500).json({ error: 'Errore interno del server' });
-            }
-            stats.articles = result.count;
-            
-            // Conta articoli pubblicati
-            db.get('SELECT COUNT(*) as count FROM articles WHERE status = "published"', (err, result) => {
-                if (err) {
-                    console.error('Errore database:', err);
-                    return res.status(500).json({ error: 'Errore interno del server' });
-                }
-                stats.published = result.count;
-                
-                // Conta media
-                db.get('SELECT COUNT(*) as count FROM media', (err, result) => {
-                    if (err) {
-                        console.error('Errore database:', err);
-                        return res.status(500).json({ error: 'Errore interno del server' });
-                    }
-                    stats.media = result.count;
-                    
-                    res.json(stats);
-                });
-            });
-        });
-    });
+        const articlesStmt = db.prepare('SELECT COUNT(*) as count FROM articles');
+        const articlesResult = articlesStmt.get();
+        stats.articles = articlesResult.count;
+        
+        // Conta articoli pubblicati
+        const publishedStmt = db.prepare('SELECT COUNT(*) as count FROM articles WHERE status = "published"');
+        const publishedResult = publishedStmt.get();
+        stats.published = publishedResult.count;
+        
+        // Conta media
+        const mediaStmt = db.prepare('SELECT COUNT(*) as count FROM media');
+        const mediaResult = mediaStmt.get();
+        stats.media = mediaResult.count;
+        
+        res.json(stats);
+    } catch (error) {
+        console.error('Errore database:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
 });
 
 // Serve admin panel
