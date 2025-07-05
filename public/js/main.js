@@ -188,6 +188,62 @@ function initScrollAnimations() {
     });
 }
 
+// Hamburger menu mobile
+function initHamburgerMenu() {
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMenu = document.getElementById('navMenu');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    const mobileMenuClose = document.getElementById('mobileMenuClose');
+
+    function closeMenu() {
+        navMenu.classList.remove('open');
+        hamburgerBtn.classList.remove('open');
+        mobileOverlay.classList.remove('show');
+        document.body.classList.remove('no-scroll');
+    }
+
+    function openMenu() {
+        navMenu.classList.add('open');
+        hamburgerBtn.classList.add('open');
+        mobileOverlay.classList.add('show');
+        document.body.classList.add('no-scroll');
+    }
+
+    if (hamburgerBtn && navMenu && mobileOverlay) {
+        // Apri menu
+        hamburgerBtn.addEventListener('click', openMenu);
+
+        // Chiudi con overlay
+        mobileOverlay.addEventListener('click', closeMenu);
+
+        // Chiudi con pulsante X
+        if (mobileMenuClose) {
+            mobileMenuClose.addEventListener('click', closeMenu);
+        }
+
+        // Chiudi con ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && navMenu.classList.contains('open')) {
+                closeMenu();
+            }
+        });
+
+        // Chiudi cliccando ovunque fuori dal menu
+        document.addEventListener('click', function(e) {
+            if (navMenu.classList.contains('open') && 
+                !navMenu.contains(e.target) && 
+                !hamburgerBtn.contains(e.target)) {
+                closeMenu();
+            }
+        });
+
+        // Chiudi con click sui link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', closeMenu);
+        });
+    }
+}
+
 // Gestisci URL degli articoli
 function handleArticleURL() {
     const path = window.location.pathname;
@@ -298,8 +354,32 @@ function initParallax() {
     });
 }
 
+// Scroll sempre in cima alla pagina al caricamento
+function scrollToTop() {
+    // Forza lo scroll in cima immediatamente
+    window.scrollTo(0, 0);
+    
+    // Riprova dopo un breve delay per sicurezza
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }, 100);
+    
+    // Riprova ancora dopo che tutto è caricato
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+    }, 500);
+}
+
 // Inizializzazione quando il DOM è caricato
 document.addEventListener('DOMContentLoaded', function() {
+    // Scroll in cima alla pagina
+    scrollToTop();
+    
+    // Inizializza menu hamburger
+    initHamburgerMenu();
+    
     // Gestisci URL degli articoli
     handleArticleURL();
     

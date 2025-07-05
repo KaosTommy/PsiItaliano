@@ -22,12 +22,90 @@
     --border-radius: 12px;
 }
 
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 0;
+}
+
 body {
     font-family: 'Roboto', sans-serif;
     line-height: 1.6;
     color: var(--text-primary);
     overflow-x: hidden;
     background: var(--psi-white);
+    scrollbar-width: thin;
+    scrollbar-color: var(--psi-red) var(--psi-gray-light);
+    position: relative;
+}
+
+/* Particelle animate nello sfondo */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(227, 30, 36, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 90% 80%, rgba(227, 30, 36, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 20% 80%, rgba(227, 30, 36, 0.02) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(227, 30, 36, 0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+    animation: backgroundFloat 20s ease-in-out infinite;
+}
+
+/* Particelle mobili ai lati */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 5% 30%, rgba(227, 30, 36, 0.05) 0%, transparent 30%),
+        radial-gradient(circle at 95% 70%, rgba(227, 30, 36, 0.05) 0%, transparent 30%),
+        radial-gradient(circle at 15% 70%, rgba(227, 30, 36, 0.04) 0%, transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(227, 30, 36, 0.04) 0%, transparent 25%);
+    pointer-events: none;
+    z-index: -1;
+    animation: backgroundFloat 15s ease-in-out infinite reverse;
+}
+
+@keyframes backgroundFloat {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.7;
+    }
+    25% {
+        transform: translateY(-20px) rotate(1deg);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(-10px) rotate(-1deg);
+        opacity: 0.8;
+    }
+    75% {
+        transform: translateY(-30px) rotate(0.5deg);
+        opacity: 0.9;
+    }
+}
+
+@keyframes sectionFloat {
+    0%, 100% {
+        transform: translateX(0px) translateY(0px) scale(1);
+        opacity: 0.6;
+    }
+    33% {
+        transform: translateX(10px) translateY(-15px) scale(1.1);
+        opacity: 0.8;
+    }
+    66% {
+        transform: translateX(-5px) translateY(10px) scale(0.9);
+        opacity: 0.7;
+    }
 }
 
 .container {
@@ -377,6 +455,22 @@ body {
 .news-section {
     background: var(--psi-gray);
     padding: 4rem 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.news-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(227, 30, 36, 0.03) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(227, 30, 36, 0.03) 0%, transparent 40%);
+    animation: sectionFloat 25s ease-in-out infinite;
+    pointer-events: none;
 }
 
 .section-header {
@@ -504,6 +598,22 @@ body {
 .media-section {
     padding: 4rem 0;
     background: var(--psi-gray);
+    position: relative;
+    overflow: hidden;
+}
+
+.media-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 15% 60%, rgba(227, 30, 36, 0.03) 0%, transparent 35%),
+        radial-gradient(circle at 85% 40%, rgba(227, 30, 36, 0.03) 0%, transparent 35%);
+    animation: sectionFloat 30s ease-in-out infinite reverse;
+    pointer-events: none;
 }
 
 .media-grid {
@@ -1084,12 +1194,15 @@ body {
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(30,30,30,0.7);
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
     z-index: 1100;
-    transition: opacity 0.3s;
+    transition: opacity 0.4s ease;
+    opacity: 0;
 }
 .mobile-overlay.show {
     display: block;
+    opacity: 1;
 }
 
 @media (max-width: 900px) {
@@ -1099,26 +1212,147 @@ body {
         height: 100vh;
         width: 70vw;
         max-width: 320px;
-        background: var(--psi-red-dark);
+        background: linear-gradient(135deg, var(--psi-red) 0%, var(--psi-red-dark) 100%);
         flex-direction: column;
         align-items: flex-start;
-        padding: 5rem 2rem 2rem 2rem;
-        box-shadow: -4px 0 24px #0002;
+        padding: 6rem 2rem 2rem 2rem;
+        box-shadow: -8px 0 32px rgba(0,0,0,0.3);
         z-index: 1201;
         transform: translateX(100%);
-        transition: transform 0.3s ease-in-out;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         visibility: hidden;
+        border-left: 4px solid var(--psi-white);
     }
     .nav-menu.open {
         transform: translateX(0);
         visibility: visible;
     }
     .nav-link {
-        font-size: 1.3rem;
-        margin: 1.2rem 0;
+        font-size: 1.4rem;
+        margin: 1.5rem 0;
         color: #fff;
+        font-weight: 500;
+        position: relative;
+        padding: 1rem 1.5rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 12px;
+        background: transparent;
+        overflow: hidden;
+        display: block;
+        width: 100%;
+        text-decoration: none;
     }
+    
+    .nav-link::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        transition: left 0.6s ease;
+    }
+    
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background: var(--psi-white);
+        transition: width 0.4s ease;
+        border-radius: 2px;
+    }
+    
+    .nav-link:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+        transform: translateX(15px) scale(1.02);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    .nav-link:hover::before {
+        left: 100%;
+    }
+    
+    .nav-link:hover::after {
+        width: 100%;
+    }
+    
+    /* Icone per ogni sezione */
+    .nav-link[href="#storia"]::before {
+        content: '📚';
+        position: absolute;
+        left: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link[href="#iscriviti"]::before {
+        content: '👥';
+        position: absolute;
+        left: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link[href="#trasparenza"]::before {
+        content: '📊';
+        position: absolute;
+        left: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link[href="#contatti"]::before {
+        content: '📞';
+        position: absolute;
+        left: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link:hover::before {
+        opacity: 1;
+        left: -40px;
+    }
+    
+    /* Effetto speciale per Home */
+    .nav-link[href="#"]::before {
+        content: '🏠';
+        position: absolute;
+        left: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-link[href="#"]:hover::before {
+        opacity: 1;
+        left: -40px;
+    }
+    
+    .mobile-menu-close {
+        display: flex;
+    }
+    
     .hamburger {
         display: flex;
     }
@@ -1168,4 +1402,99 @@ body {
 
 body.no-scroll {
     overflow: hidden;
+}
+
+/* SCROLLBAR PERSONALIZZATA PSI - VERSIONE MIGLIORATA */
+body::-webkit-scrollbar {
+    width: 14px;
+    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+body::-webkit-scrollbar-track {
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 10px;
+    border: 1px solid rgba(222, 226, 230, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+body::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--psi-red) 0%, var(--psi-red-dark) 50%, #8B0000 100%);
+    border-radius: 10px;
+    border: none;
+    box-shadow: 
+        0 2px 8px rgba(227, 30, 36, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+body::-webkit-scrollbar-thumb::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--psi-red-light) 0%, var(--psi-red) 50%, var(--psi-red-dark) 100%);
+    box-shadow: 
+        0 4px 12px rgba(227, 30, 36, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+body::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #8B0000 0%, var(--psi-red-dark) 50%, var(--psi-red) 100%);
+    box-shadow: 
+        0 2px 6px rgba(227, 30, 36, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+body::-webkit-scrollbar-corner {
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+/* Firefox */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--psi-red) var(--psi-gray-light);
+}
+
+/* Nascondi SEMPRE la X su desktop */
+@media (min-width: 901px) {
+    .mobile-menu-close {
+        display: none !important;
+    }
+}
+
+/* Pulsante X visibile solo su mobile */
+.mobile-menu-close {
+    display: none;
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--psi-white);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 900px) {
+    .mobile-menu-close {
+        display: flex;
+    }
 } 
