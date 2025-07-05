@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSI - Partito Socialista Italiano</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- HEADER ANIMATO -->
+    <header class="header">
+        <div class="container nav-container">
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="/img/logo-psi.png" alt="Logo PSI" class="logo-img">
+                    <span class="logo-text">PSI</span>
+                </div>
+                <span class="logo-subtitle">Partito Socialista Italiano</span>
+            </div>
+            <nav class="nav-menu" id="navMenu">
+                <a href="#" class="nav-link">Home</a>
+                <a href="#storia" class="nav-link">Storia</a>
+                <a href="#iscriviti" class="nav-link">Iscriviti</a>
+                <a href="#trasparenza" class="nav-link">Trasparenza</a>
+                <a href="#contatti" class="nav-link">Contatti</a>
+            </nav>
+            <button class="hamburger" id="hamburgerBtn" aria-label="Apri menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+    </header>
+
+    <!-- HERO SECTION ANIMATA -->
+    <section class="hero-section">
+        <div class="hero-background">
+            <div class="hero-particles"></div>
+            <img src="/img/sfondo-signore.jpg" alt="Sfondo" class="hero-signore-bg">
+            <div class="hero-gradient"></div>
+            <div class="hero-wave">
+                <svg viewBox="0 0 1440 180" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                    <path d="M0 120 Q 360 180 720 120 T 1440 120 V180 H0Z" fill="#E31E24" opacity="0.7">
+                        <animate attributeName="d" dur="8s" repeatCount="indefinite"
+                            values="M0 120 Q 360 180 720 120 T 1440 120 V180 H0Z;
+                                    M0 140 Q 360 100 720 160 T 1440 140 V180 H0Z;
+                                    M0 120 Q 360 180 720 120 T 1440 120 V180 H0Z" />
+                    </path>
+                </svg>
+            </div>
+        </div>
+        <div class="container hero-content">
+            <h1 class="hero-title">
+                <span class="title-line">Libertà</span>
+                <span class="title-line">Uguaglianza</span>
+                <span class="title-line">Solidarietà</span>
+            </h1>
+            <p class="hero-subtitle">Il Partito Socialista Italiano per un futuro di giustizia sociale e progresso</p>
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="scrollToSection('news')">
+                    <i class="fas fa-newspaper"></i>
+                    Leggi le Notizie
+                </button>
+                <button class="btn btn-secondary" onclick="scrollToSection('iscriviti')">
+                    <i class="fas fa-user-plus"></i>
+                    Iscriviti al PSI
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- BANNER DONA 2x1000 ANIMATO -->
+    <section class="donation-section">
+        <div class="container donation-content">
+            <div class="donation-card">
+                <div class="donation-icon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <div class="donation-text">
+                    <h2>DONA IL 2×1000 AL PSI</h2>
+                    <h3>Codice <span class="highlight">R22</span> nella denuncia dei redditi</h3>
+                    <p class="donation-subtitle">Non ti costa nulla. Sostieni il futuro. Sostieni il PSI.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEZIONE NOTIZIE DINAMICA -->
+    <section class="news-section" id="news">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">In Evidenza</h2>
+                <div class="section-decoration">
+                    <div class="decoration-line"></div>
+                    <div class="decoration-dot"></div>
+                    <div class="decoration-line"></div>
+                </div>
+            </div>
+            <div class="news-grid" id="articlesList">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Caricamento articoli...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEZIONE FOTO DINAMICA -->
+    <section class="media-section" id="media">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Galleria Foto</h2>
+                <div class="section-decoration">
+                    <div class="decoration-line"></div>
+                    <div class="decoration-dot"></div>
+                    <div class="decoration-line"></div>
+                </div>
+            </div>
+            <div class="media-grid" id="mediaList">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Caricamento foto...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEZIONI STATICHE ANIMATE -->
+    <section class="iscriviti-section" id="iscriviti">
+        <div class="container">
+            <div class="content-card">
+                <div class="card-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h2 class="section-title">Iscriviti al PSI</h2>
+                <p>È aperto il tesseramento per l'anno 2025. <a href="#" class="link-highlight">Scopri come iscriverti</a> e partecipa alla vita del Partito Socialista Italiano.</p>
+                <button class="btn btn-outline">Scopri di più</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="trasparenza-section" id="trasparenza">
+        <div class="container">
+            <div class="content-card">
+                <div class="card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h2 class="section-title">Trasparenza</h2>
+                <p>Consulta il <a href="#" class="link-highlight">bilancio online</a>, l'anagrafe patrimoniale degli eletti e altri documenti di trasparenza del PSI.</p>
+                <button class="btn btn-outline">Visualizza documenti</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="contatti-section" id="contatti">
+        <div class="container">
+            <div class="content-card">
+                <div class="card-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <h2 class="section-title">Contatti</h2>
+                <div class="contact-list">
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Via Santa Caterina da Siena 57 - 00186 Roma</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+39 06 1234567</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>info@partitosocialista.it</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-id-card"></i>
+                        <span>C.F: 97519520585</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER MODERNO -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <div class="logo-circle small"></div>
+                    <span>PSI</span>
+                </div>
+                <p>Libertà, Uguaglianza, Solidarietà</p>
+                <div class="social-links">
+                    <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h4>Link Utili</h4>
+                <ul class="footer-links">
+                    <li><a href="#storia">Storia del Partito</a></li>
+                    <li><a href="#iscriviti">Iscriviti</a></li>
+                    <li><a href="#trasparenza">Trasparenza</a></li>
+                    <li><a href="#contatti">Contatti</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Partito Socialista Italiano. Tutti i diritti riservati.</p>
+        </div>
+    </footer>
+
+    <script src="/js/main.js"></script>
+    <script>
+    // Hamburger menu mobile
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMenu = document.getElementById('navMenu');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+
+    hamburgerBtn.addEventListener('click', function() {
+        navMenu.classList.toggle('open');
+        mobileOverlay.classList.toggle('show');
+        document.body.classList.toggle('no-scroll');
+    });
+    mobileOverlay.addEventListener('click', function() {
+        navMenu.classList.remove('open');
+        mobileOverlay.classList.remove('show');
+        document.body.classList.remove('no-scroll');
+    });
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            navMenu.classList.remove('open');
+            mobileOverlay.classList.remove('show');
+            document.body.classList.remove('no-scroll');
+        });
+    });
+    </script>
+</body>
+</html>

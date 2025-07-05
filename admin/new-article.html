@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuovo Articolo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .container { background: #fff; border-radius: 10px; max-width: 600px; margin: 2rem auto; padding: 2rem; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        h2 { color: #d32f2f; }
+        label { display: block; margin-top: 1rem; }
+        input, select, textarea { width: 100%; padding: 0.5rem; margin-top: 0.3rem; border-radius: 5px; border: 1px solid #ccc; }
+        button { margin-top: 1.5rem; background: #d32f2f; color: #fff; border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #msg { margin-top: 1rem; }
+        .psi-header { background: linear-gradient(90deg, #d32f2f 0%, #f44336 100%); color: #fff; padding: 1.2rem 2rem; display: flex; align-items: center; gap: 1rem; border-radius: 0 0 16px 16px; margin-bottom: 2rem; }
+        .psi-header .logo { font-size: 2.2rem; }
+        .psi-header h1 { font-size: 1.5rem; margin: 0; }
+    </style>
+</head>
+<body>
+    <div class="psi-header">
+        <span class="logo">🔴</span>
+        <h1>PSI CMS - Nuovo Articolo</h1>
+    </div>
+    <div class="container">
+        <h2>Nuovo Articolo</h2>
+        <form id="articleForm">
+            <label for="title">Titolo</label>
+            <input type="text" id="title" required>
+            <label for="category">Categoria</label>
+            <select id="category"></select>
+            <div id="catMsg" style="color:#d32f2f;font-size:0.95rem;"></div>
+            <label for="content">Contenuto</label>
+            <textarea id="content" rows="8" required></textarea>
+            <label for="status">Stato</label>
+            <select id="status">
+                <option value="draft">Bozza</option>
+                <option value="published">Pubblicato</option>
+            </select>
+            <button type="submit">Salva</button>
+        </form>
+        <div id="msg"></div>
+    </div>
+    <script src="/js/new-article.js"></script>
+</body>
+</html> 
